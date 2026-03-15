@@ -1,4 +1,4 @@
-# app.py — Research Paper Q&A Engine (RAG) — Day 2
+# app.py — Research Paper Q&A Engine (RAG) 
 import os
 import json
 import streamlit as st
@@ -308,8 +308,6 @@ st.markdown("""
         <span>Paper<span style="color:#3b82f6;">Mind</span></span>
     </div>
     <div style="display:flex; gap:8px; align-items:center;">
-        <span class="nav-pill">RAG · Pinecone · sentence-transformers</span>
-        <span class="nav-pill">Day 2 · GenAI</span>
     </div>
 </div>
 <div style="height:24px"></div>
