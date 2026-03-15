@@ -7,15 +7,14 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Streamlit Cloud secrets support
-# Streamlit Cloud secrets support
 try:
     for key in ["GEMINI_API_KEY", "PINECONE_API_KEY", "GROQ_API_KEY"]:
         if key in st.secrets:
             os.environ[key] = st.secrets[key]
 except Exception:
-    pass  # running locally, use .env instead
+    pass
 
-from src.pdf_parser import parse_paper
+from src.pdf_parser import parse_paper, find_relevant_figures
 from src.rag_pipeline import (
     get_embedder, get_pinecone_index, chunk_text,
     upsert_paper, semantic_search, make_paper_id, delete_paper
@@ -47,7 +46,6 @@ html, body, .stApp {
     color: #e2e8f0;
 }
 
-/* ── Navbar ── */
 .navbar {
     display: flex;
     align-items: center;
@@ -79,8 +77,6 @@ html, body, .stApp {
     font-weight: 600;
     letter-spacing: 0.5px;
 }
-
-/* ── Cards ── */
 .card {
     background: #0a0e1a;
     border: 1px solid #1a2540;
@@ -94,8 +90,6 @@ html, body, .stApp {
     padding: 24px;
     box-shadow: 0 0 40px #1e3a5f22;
 }
-
-/* ── Section label ── */
 .sec-label {
     font-size: 10px;
     font-weight: 700;
@@ -105,8 +99,6 @@ html, body, .stApp {
     display: block;
     margin-bottom: 10px;
 }
-
-/* ── Paper card ── */
 .paper-card {
     background: #0a0e1a;
     border: 1px solid #1a2540;
@@ -114,19 +106,11 @@ html, body, .stApp {
     border-radius: 10px;
     padding: 14px 16px;
     margin: 6px 0;
-    cursor: pointer;
-    transition: all 0.2s;
-}
-.paper-card:hover {
-    border-color: #3b82f6;
-    background: #0d1428;
 }
 .paper-card.active {
     border-left-color: #8b5cf6;
     background: #0f1a2e;
 }
-
-/* ── Keyword tag ── */
 .kw-tag {
     display: inline-block;
     background: #0d1a2e;
@@ -139,8 +123,6 @@ html, body, .stApp {
     font-weight: 500;
     font-family: 'DM Mono', monospace;
 }
-
-/* ── Finding item ── */
 .finding-item {
     padding: 8px 12px;
     background: #071a10;
@@ -150,8 +132,6 @@ html, body, .stApp {
     font-size: 13px;
     color: #86efac;
 }
-
-/* ── Source chunk ── */
 .source-chunk {
     background: #080c18;
     border: 1px solid #1a2540;
@@ -164,8 +144,6 @@ html, body, .stApp {
     font-family: 'DM Mono', monospace;
     line-height: 1.6;
 }
-
-/* ── Score badge ── */
 .score-badge {
     display: inline-block;
     background: #1a0d30;
@@ -177,13 +155,44 @@ html, body, .stApp {
     font-weight: 600;
     font-family: 'DM Mono', monospace;
 }
-
-/* ── Difficulty badge ── */
 .diff-beginner { color: #22c55e; background: #052e16; border: 1px solid #166534; border-radius: 6px; padding: 2px 10px; font-size: 11px; font-weight: 600; }
 .diff-intermediate { color: #f59e0b; background: #1c1000; border: 1px solid #78350f; border-radius: 6px; padding: 2px 10px; font-size: 11px; font-weight: 600; }
 .diff-advanced { color: #ef4444; background: #2d0a0a; border: 1px solid #7f1d1d; border-radius: 6px; padding: 2px 10px; font-size: 11px; font-weight: 600; }
 
-/* ── Buttons ── */
+.fig-card {
+    background: #0a0e1a;
+    border: 1px solid #1a2540;
+    border-radius: 12px;
+    padding: 14px;
+    margin-bottom: 14px;
+}
+.fig-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: #3b82f6;
+    letter-spacing: 1px;
+    margin-bottom: 4px;
+}
+.fig-caption {
+    font-size: 12px;
+    color: #64748b;
+    line-height: 1.5;
+    margin-bottom: 10px;
+}
+.fig-match-banner {
+    background: #0a1628;
+    border: 1px solid #1e3a5f;
+    border-left: 3px solid #3b82f6;
+    border-radius: 8px;
+    padding: 8px 14px;
+    font-size: 11px;
+    font-weight: 700;
+    color: #60a5fa;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin: 10px 0 8px 0;
+}
+
 .stButton > button {
     background: linear-gradient(135deg, #1d4ed8, #4f46e5) !important;
     color: white !important;
@@ -200,7 +209,6 @@ html, body, .stApp {
     box-shadow: 0 4px 20px #2563eb44 !important;
 }
 
-/* ── Chat ── */
 [data-testid="stChatMessage"] {
     background: #0a0e1a !important;
     border: 1px solid #1a2540 !important;
@@ -219,7 +227,6 @@ html, body, .stApp {
 [data-testid="stChatInput"]:focus-within { border-color: #2563eb !important; }
 [data-testid="stChatInput"] textarea { background: transparent !important; color: #e2e8f0 !important; font-family: 'DM Sans', sans-serif !important; }
 
-/* ── Tabs ── */
 [data-testid="stTabs"] [data-baseweb="tab-list"] {
     background: #080c18 !important;
     border-radius: 12px !important;
@@ -238,8 +245,6 @@ html, body, .stApp {
     background: #1a2540 !important;
     color: #e2e8f0 !important;
 }
-
-/* ── Metrics ── */
 [data-testid="stMetric"] {
     background: #0a0e1a !important;
     border: 1px solid #1a2540 !important;
@@ -248,14 +253,8 @@ html, body, .stApp {
 }
 [data-testid="stMetricLabel"] { color: #475569 !important; font-size: 11px !important; font-weight: 700 !important; text-transform: uppercase !important; letter-spacing: 0.8px !important; }
 [data-testid="stMetricValue"] { color: #e2e8f0 !important; font-size: 20px !important; font-weight: 700 !important; }
+[data-testid="stProgress"] > div > div { background: linear-gradient(90deg, #2563eb, #7c3aed) !important; border-radius: 4px !important; }
 
-/* ── Progress ── */
-[data-testid="stProgress"] > div > div {
-    background: linear-gradient(90deg, #2563eb, #7c3aed) !important;
-    border-radius: 4px !important;
-}
-
-/* ── Misc ── */
 hr { border-color: #1a2540 !important; margin: 20px 0 !important; }
 #MainMenu, footer, .stDeployButton { display: none !important; }
 [data-testid="collapsedControl"] { display: none !important; }
@@ -265,7 +264,6 @@ hr { border-color: #1a2540 !important; margin: 20px 0 !important; }
 [data-testid="stSuccess"] { background: #052e16 !important; border: 1px solid #166534 !important; border-radius: 10px !important; }
 [data-testid="stError"] { background: #2d0a0a !important; border: 1px solid #7f1d1d !important; border-radius: 10px !important; }
 [data-testid="stInfo"] { background: #0c1a2e !important; border: 1px solid #1e3a5f !important; border-radius: 10px !important; }
-[data-testid="stSpinner"] { color: #3b82f6 !important; }
 [data-testid="stSelectbox"] > div > div { background: #0a0e1a !important; border-color: #1a2540 !important; color: #e2e8f0 !important; border-radius: 10px !important; }
 [data-testid="stFileUploader"] > div { background: #080c18 !important; border: 2px dashed #1a2540 !important; border-radius: 14px !important; }
 </style>
@@ -276,7 +274,7 @@ hr { border-color: #1a2540 !important; margin: 20px 0 !important; }
 # SESSION STATE
 # ═══════════════════════════════════════════════════════
 DEFAULTS = {
-    "papers": {},           # {paper_id: {title, word_count, summary, chunks}}
+    "papers": {},
     "active_paper_id": None,
     "messages": [],
     "embedder": None,
@@ -310,7 +308,8 @@ st.markdown("""
         <span>Paper<span style="color:#3b82f6;">Mind</span></span>
     </div>
     <div style="display:flex; gap:8px; align-items:center;">
-        <span class="nav-pill">RAG · Pinecone · Gemini</span>
+        <span class="nav-pill">RAG · Pinecone · sentence-transformers</span>
+        <span class="nav-pill">Day 2 · GenAI</span>
     </div>
 </div>
 <div style="height:24px"></div>
@@ -318,11 +317,10 @@ st.markdown("""
 
 
 # ═══════════════════════════════════════════════════════
-# LANDING PAGE — No papers yet
+# LANDING PAGE
 # ═══════════════════════════════════════════════════════
 if not st.session_state.papers:
 
-    # Hero
     st.markdown("""
     <div style="text-align:center; padding:28px 0 36px 0;">
         <div style="font-size:12px; color:#3b82f6; font-weight:700; letter-spacing:2.5px;
@@ -340,12 +338,11 @@ if not st.session_state.papers:
         <p style="color:#475569; font-size:16px; max-width:500px; margin:0 auto; line-height:1.6;">
             Upload a PDF → chunks get embedded into Pinecone →
             your questions retrieve the most relevant sections →
-            LLaMA 3.1 generates precise answers.
+            LLaMA 3.1 generates precise answers with figures from the paper.
         </p>
     </div>
     """, unsafe_allow_html=True)
 
-    # Upload card
     pad_l, main_col, pad_r = st.columns([1, 2, 1])
     with main_col:
         st.markdown("<span class='sec-label'>📄 Upload Research Paper</span>",
@@ -363,7 +360,7 @@ if not st.session_state.papers:
                     st.session_state.groq_client = groq_client
 
                     with st.status("Processing paper...", expanded=True) as status:
-                        st.write("📄 Extracting text from PDF...")
+                        st.write("📄 Extracting text and figures from PDF...")
                         paper = parse_paper(uploaded, uploaded.name)
 
                         st.write(f"✂️ Chunking {paper.word_count:,} words...")
@@ -382,7 +379,11 @@ if not st.session_state.papers:
                         st.write("📊 Generating paper summary...")
                         summary = generate_paper_summary(paper.full_text, groq_client)
 
-                        status.update(label="✅ Paper indexed successfully!", state="complete")
+                        fig_count = len(paper.figures)
+                        status.update(
+                            label=f"✅ Paper indexed! {fig_count} figures extracted.",
+                            state="complete"
+                        )
 
                     st.session_state.papers[paper_id] = {
                         "title": paper.title,
@@ -391,6 +392,7 @@ if not st.session_state.papers:
                         "chunk_count": len(chunks),
                         "vectors_upserted": count,
                         "summary": summary,
+                        "figures": paper.figures,
                     }
                     st.session_state.active_paper_id = paper_id
                     st.session_state.messages = []
@@ -401,19 +403,12 @@ if not st.session_state.papers:
 
     st.markdown("<div style='height:40px'></div>", unsafe_allow_html=True)
 
-    # How it works
-    st.markdown("""
-    <div style="text-align:center; margin-bottom:20px;">
-        <span class="sec-label">How RAG Works</span>
-    </div>
-    """, unsafe_allow_html=True)
-
     steps = st.columns(4)
     flow = [
-        ("📄", "1. Parse", "PDF text extracted and cleaned with PyMuPDF"),
+        ("📄", "1. Parse", "PDF text + figures extracted with PyMuPDF"),
         ("✂️", "2. Chunk", "Text split into 500-word overlapping chunks"),
-        ("🧠", "3. Embed", "Each chunk embedded with Gemini into 768-dim vector"),
-        ("🔍", "4. Retrieve", "Your query finds top-K most relevant chunks via cosine similarity"),
+        ("🧠", "3. Embed", "Each chunk embedded into 384-dim vector"),
+        ("🔍", "4. Retrieve", "Query finds top-K chunks + matching figures"),
     ]
     for col, (icon, title, desc) in zip(steps, flow):
         with col:
@@ -427,10 +422,9 @@ if not st.session_state.papers:
 
 
 # ═══════════════════════════════════════════════════════
-# MAIN DASHBOARD — Papers loaded
+# MAIN DASHBOARD
 # ═══════════════════════════════════════════════════════
 else:
-    # Init clients if needed
     if not st.session_state.embedder:
         try:
             embedder, index, groq_client = init_clients()
@@ -444,10 +438,12 @@ else:
     active_id = st.session_state.active_paper_id
     active_paper = st.session_state.papers.get(active_id, {})
     summary = active_paper.get("summary", {})
+    paper_figures = active_paper.get("figures", [])
 
     # ── Top bar ──
     top_l, top_r = st.columns([3, 1])
     with top_l:
+        fig_count = len(paper_figures)
         st.markdown(f"""
         <div style="padding:4px 0 12px 0;">
             <div style="font-size:20px; font-weight:700; color:#f1f5f9; margin-bottom:2px;">
@@ -457,7 +453,8 @@ else:
                 {active_paper.get('filename', '')} ·
                 {active_paper.get('word_count', 0):,} words ·
                 {active_paper.get('chunk_count', 0)} chunks ·
-                {active_paper.get('vectors_upserted', 0)} vectors in Pinecone
+                {active_paper.get('vectors_upserted', 0)} vectors ·
+                <span style="color:#3b82f6;">{fig_count} figures extracted</span>
             </div>
         </div>
         """, unsafe_allow_html=True)
@@ -471,14 +468,12 @@ else:
     # ── Summary row ──
     if summary:
         s_col, k_col = st.columns([3, 2])
-
         with s_col:
             one_liner = summary.get("one_liner", "")
             problem = summary.get("problem", "")
             approach = summary.get("approach", "")
             diff = summary.get("difficulty", "Intermediate")
             field = summary.get("field", "")
-
             diff_class = f"diff-{diff.lower()}"
 
             st.markdown(f"""
@@ -503,14 +498,12 @@ else:
         with k_col:
             findings = summary.get("key_findings", [])
             keywords = summary.get("keywords", [])
-
             if findings:
                 st.markdown("<span class='sec-label'>Key Findings</span>",
                             unsafe_allow_html=True)
                 for f in findings[:3]:
                     st.markdown(f"<div class='finding-item'>→ {f}</div>",
                                 unsafe_allow_html=True)
-
             if keywords:
                 st.markdown("<div style='height:10px'></div>", unsafe_allow_html=True)
                 kw_html = "".join([f"<span class='kw-tag'>{k}</span>" for k in keywords])
@@ -519,15 +512,17 @@ else:
     st.markdown("<hr/>", unsafe_allow_html=True)
 
     # ── Tabs ──
-    tab_chat, tab_search, tab_stats = st.tabs([
-        "💬  Ask Questions", "🔍  Semantic Search", "📊  RAG Stats"
+    tab_chat, tab_figures, tab_search, tab_stats = st.tabs([
+        "💬  Ask Questions",
+        f"🖼  Figures ({len(paper_figures)})",
+        "🔍  Semantic Search",
+        "📊  RAG Stats"
     ])
 
     # ─────────────────────────────────
     # TAB 1: CHAT
     # ─────────────────────────────────
     with tab_chat:
-        # Suggested questions
         if not st.session_state.messages:
             st.markdown("<span class='sec-label'>💡 Try these questions</span>",
                         unsafe_allow_html=True)
@@ -554,23 +549,42 @@ else:
             avatar = "🧑‍💻" if msg["role"] == "user" else "📚"
             with st.chat_message(msg["role"], avatar=avatar):
                 st.markdown(msg["content"])
-                if msg["role"] == "assistant" and "sources" in msg:
-                    with st.expander(f"📎 {len(msg['sources'])} source chunks retrieved"):
-                        for i, src in enumerate(msg["sources"]):
-                            st.markdown(f"""
-                            <div class="source-chunk">
-                                <span class="score-badge">score: {src['score']}</span>
-                                &nbsp; chunk #{src['chunk_index']}<br/><br/>
-                                {src['text'][:300]}...
-                            </div>""", unsafe_allow_html=True)
+                if msg["role"] == "assistant":
+                    # Show saved matched figures
+                    saved_figs = msg.get("matched_figures", [])
+                    if saved_figs:
+                        st.markdown(
+                            "<div class='fig-match-banner'>📌 Related Figures from Paper</div>",
+                            unsafe_allow_html=True
+                        )
+                        fig_cols = st.columns(len(saved_figs))
+                        for col, fig in zip(fig_cols, saved_figs):
+                            with col:
+                                caption = f"{fig.fig_label}"
+                                if fig.caption:
+                                    caption += f" — {fig.caption}"
+                                st.image(
+                                    f"data:image/png;base64,{fig.image_base64}",
+                                    caption=caption,
+                                    use_column_width=True
+                                )
+                    if "sources" in msg:
+                        with st.expander(f"📎 {len(msg['sources'])} source chunks retrieved"):
+                            for src in msg["sources"]:
+                                st.markdown(f"""
+                                <div class="source-chunk">
+                                    <span class="score-badge">score: {src['score']}</span>
+                                    &nbsp; chunk #{src['chunk_index']}<br/><br/>
+                                    {src['text'][:300]}...
+                                </div>""", unsafe_allow_html=True)
                     if "meta" in msg:
                         m = msg["meta"]
                         c1, c2, c3 = st.columns(3)
                         c1.metric("Latency", f"{m['latency_ms']:.0f}ms")
                         c2.metric("Tokens", f"{m['tokens_in']}→{m['tokens_out']}")
-                        c3.metric("Sources", len(msg["sources"]))
+                        c3.metric("Sources", len(msg.get("sources", [])))
 
-        # Input
+        # Chat input
         if prompt := st.chat_input("Ask anything about this paper..."):
             with st.chat_message("user", avatar="🧑‍💻"):
                 st.markdown(prompt)
@@ -591,7 +605,28 @@ else:
                         retrieved_chunks=chunks,
                         client=st.session_state.groq_client
                     )
+
                 st.markdown(response.answer)
+
+                # ── Auto figure matching ──
+                matched_figs = find_relevant_figures(prompt, paper_figures, top_k=2)
+                if matched_figs:
+                    st.markdown(
+                        "<div class='fig-match-banner'>📌 Related Figures from Paper</div>",
+                        unsafe_allow_html=True
+                    )
+                    fig_cols = st.columns(len(matched_figs))
+                    for col, fig in zip(fig_cols, matched_figs):
+                        with col:
+                            caption = f"{fig.fig_label}"
+                            if fig.caption:
+                                caption += f" — {fig.caption}"
+                            st.image(
+                                f"data:image/png;base64,{fig.image_base64}",
+                                caption=caption,
+                                use_column_width=True
+                            )
+                # ─────────────────────────
 
                 with st.expander(f"📎 {len(chunks)} source chunks retrieved"):
                     for src in chunks:
@@ -611,6 +646,7 @@ else:
                 "role": "assistant",
                 "content": response.answer,
                 "sources": chunks,
+                "matched_figures": matched_figs,
                 "meta": {
                     "latency_ms": response.latency_ms,
                     "tokens_in": response.tokens_in,
@@ -624,7 +660,52 @@ else:
                 st.rerun()
 
     # ─────────────────────────────────
-    # TAB 2: SEMANTIC SEARCH
+    # TAB 2: FIGURE GALLERY
+    # ─────────────────────────────────
+    with tab_figures:
+        if not paper_figures:
+            st.markdown("""
+            <div style="text-align:center; padding:48px; color:#334155;">
+                <div style="font-size:32px; margin-bottom:8px;">🖼</div>
+                <div style="font-size:14px;">No figures found in this paper.</div>
+                <div style="font-size:12px; margin-top:6px; color:#1e2d4a;">
+                    Some PDFs store images in formats that can't be extracted.
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+        else:
+            st.markdown(
+                f"<div style='padding:8px 0 12px 0; font-size:13px; color:#475569;'>"
+                f"{len(paper_figures)} figures extracted · Search or browse all</div>",
+                unsafe_allow_html=True
+            )
+
+            display_figs = paper_figures
+
+            for i in range(0, len(display_figs), 2):
+                cols = st.columns(2)
+                for j, col in enumerate(cols):
+                    if i + j < len(display_figs):
+                        fig = display_figs[i + j]
+                        with col:
+                            with st.container():
+                                st.markdown(f"""
+                                <div class="fig-card">
+                                    <div class="fig-label">{fig.fig_label} · Page {fig.page}</div>
+                                    <div class="fig-caption">
+                                        {fig.caption if fig.caption else "No caption detected"}
+                                    </div>
+                                </div>
+                                """, unsafe_allow_html=True)
+                                st.image(
+                                    f"data:image/png;base64,{fig.image_base64}",
+                                    use_column_width=True
+                                )
+                                st.markdown("<div style='height:8px'></div>",
+                                            unsafe_allow_html=True)
+
+    # ─────────────────────────────────
+    # TAB 3: SEMANTIC SEARCH
     # ─────────────────────────────────
     with tab_search:
         st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
@@ -633,8 +714,11 @@ else:
 
         search_col, k_col = st.columns([4, 1])
         with search_col:
-            search_query = st.text_input("Search Query", placeholder="e.g. attention mechanism, loss function, dataset...",
-                                         label_visibility="collapsed")
+            search_query = st.text_input(
+                "Search Query",
+                placeholder="e.g. attention mechanism, loss function, dataset...",
+                label_visibility="collapsed"
+            )
         with k_col:
             top_k = st.selectbox("Top K", [3, 5, 8, 10], index=1,
                                  label_visibility="collapsed")
@@ -652,7 +736,7 @@ else:
             st.markdown(f"<div style='font-size:12px; color:#334155; margin:10px 0;'>"
                         f"Found {len(results)} chunks</div>", unsafe_allow_html=True)
 
-            for i, r in enumerate(results):
+            for r in results:
                 score_pct = int(r["score"] * 100)
                 with st.expander(f"Chunk #{r['chunk_index']} — Score: {r['score']} ({score_pct}% match)"):
                     st.progress(r["score"])
@@ -662,7 +746,7 @@ else:
                     </div>""", unsafe_allow_html=True)
 
     # ─────────────────────────────────
-    # TAB 3: RAG STATS
+    # TAB 4: RAG STATS
     # ─────────────────────────────────
     with tab_stats:
         st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
@@ -671,36 +755,20 @@ else:
         c1.metric("Papers Indexed", len(st.session_state.papers))
         c2.metric("Total Chunks", sum(p.get("chunk_count", 0) for p in st.session_state.papers.values()))
         c3.metric("Vectors in Pinecone", sum(p.get("vectors_upserted", 0) for p in st.session_state.papers.values()))
-        c4.metric("Questions Asked", len([m for m in st.session_state.messages if m["role"] == "user"]))
+        c4.metric("Figures Extracted", sum(len(p.get("figures", [])) for p in st.session_state.papers.values()))
 
         st.markdown("<div style='height:16px'></div>", unsafe_allow_html=True)
         st.markdown("<span class='sec-label'>Architecture</span>", unsafe_allow_html=True)
         st.markdown("""
         <div class="card" style="font-family:'DM Mono',monospace; font-size:12px;
                                   color:#475569; line-height:2;">
-            PDF Upload → PyMuPDF text extraction<br/>
+            PDF Upload → PyMuPDF text + figure extraction<br/>
             → Chunk (500 words, 100 overlap)<br/>
-            → Gemini embedding-001 (768 dimensions)<br/>
+            → sentence-transformers all-MiniLM-L6-v2 (384 dimensions)<br/>
             → Pinecone upsert (cosine similarity index)<br/>
             ────────────────────────────────────<br/>
-            Query → Gemini embed → Pinecone top-K search<br/>
-            → Retrieved chunks → LLaMA 3.1 (Groq)<br/>
-            → Grounded answer with source citations
+            Query → embed → Pinecone top-K search<br/>
+            → Retrieved chunks + keyword-matched figures<br/>
+            → LLaMA 3.1 (Groq) → grounded answer + figures shown
         </div>
         """, unsafe_allow_html=True)
-
-        # Papers list
-        if len(st.session_state.papers) > 1:
-            st.markdown("<div style='height:16px'></div>", unsafe_allow_html=True)
-            st.markdown("<span class='sec-label'>Indexed Papers</span>", unsafe_allow_html=True)
-            for pid, paper in st.session_state.papers.items():
-                active = "active" if pid == active_id else ""
-                st.markdown(f"""
-                <div class="paper-card {active}">
-                    <div style="font-weight:600; color:#e2e8f0; font-size:13px;">
-                        {paper['title'][:60]}
-                    </div>
-                    <div style="font-size:11px; color:#334155; margin-top:4px;">
-                        {paper['word_count']:,} words · {paper['chunk_count']} chunks · {paper['vectors_upserted']} vectors
-                    </div>
-                </div>""", unsafe_allow_html=True)
