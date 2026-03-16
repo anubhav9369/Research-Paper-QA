@@ -13,7 +13,6 @@
 ## 🔗 Live Demo
 **[research-paper--app.streamlit.app](https://research-paper--app.streamlit.app/)**
 
-
 ---
 
 ## 🧠 What is PaperMind?
@@ -45,6 +44,7 @@ Upload any research paper PDF → it gets chunked, embedded, and stored in a vec
 - **Source Citations** — every answer shows which chunks it retrieved with relevance scores
 - **RAG Stats Dashboard** — architecture visualization, vector counts, query metrics
 - **No Token Limits** — only the top-5 relevant chunks are sent to the LLM, not the full paper
+- **Proper Section for Images** - Integrated figure extraction and caption matching enabling multimodal document understanding.
 
 ---
 
