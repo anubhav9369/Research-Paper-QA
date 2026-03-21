@@ -68,6 +68,7 @@ Retrieved chunks as context
     ↓
 LLaMA 3.1 8B via Groq → grounded answer with citations
 ```
+![Uploading image.png…]()
 
 ### Why RAG instead of sending the full paper?
 
