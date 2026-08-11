@@ -1,3 +1,14 @@
+---
+title: PaperMind - Research Paper QA
+emoji: 📚
+colorFrom: green
+colorTo: blue
+sdk: streamlit
+sdk_version: 1.35.0
+app_file: app.py
+pinned: false
+---
+
 # 📚 PaperMind — Research Paper Q&A Engine
 
 > Ask anything about any research paper. Get answers grounded in the actual content — with source citations.
